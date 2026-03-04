@@ -1,0 +1,11 @@
+{
+  "name": "yalo",
+  "version": "1.0.0",
+  "description": "E2E Testing Framework with Playwright and Typescript",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "author": "",
+  "license": "ISC"
+}
