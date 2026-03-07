@@ -89,3 +89,20 @@ playwright.config.ts
 
 Create `tests/e2e/feature.spec.ts` — authenticated by default, no extra config needed.
 Add `test.use({ stealthStorageState: { cookies: [], origins: [] } })` only if the suite needs a clean session.
+
+---
+
+## Using playwright-cli Snapshots
+
+When asked to create a new POM, ask the user to provide a snapshot first:
+
+```bash
+npx playwright-cli open --headed https://demo.nopcommerce.com/target-page
+# navigate manually, then in a second terminal:
+npx playwright-cli snapshot
+```
+
+From the snapshot output:
+- Use `getByRole` / `getByLabel` / `getByText` selectors — never use `ref=eXX` values
+- Watch for duplicate element names across header/footer — scope to `page.getByRole('banner')` for header links
+- `.playwright-cli/` is gitignored — never reference or commit snapshot files

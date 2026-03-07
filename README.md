@@ -317,3 +317,42 @@ test.describe('Login Workflow', () => {
 > Stealth is still fully applied in unauthenticated suites — bot detection is bypassed regardless of auth state.
 >
 > ⚠️ Note: `test.use({ storageState: ... })` (Playwright's built-in option) does **not** work here because the stealth fixture manages its own browser context. Always use `stealthStorageState` instead.
+
+---
+
+## Using playwright-cli to Capture Snapshots
+
+`playwright-cli` is used to inspect live pages and generate locators for new Page Object Models. It opens a real headed browser, lets you navigate manually (bypassing bot detection), and takes a structured snapshot of the page's accessibility tree.
+
+### Workflow
+
+**Step 1 — Open the page you want to inspect**
+
+```bash
+npx playwright-cli open --headed https://demo.nopcommerce.com/your-page
+```
+
+**Step 2 — Navigate and log in manually if needed**
+
+Once the browser opens, interact with the page as a real user — log in, navigate to the target page, etc.
+
+**Step 3 — Take a snapshot from a second terminal**
+
+```bash
+npx playwright-cli snapshot
+```
+
+This outputs the full accessibility tree of the current page — every element, role, label, and ref. Paste it into Claude to generate a Page Object Model with accurate locators.
+
+**Step 4 — Build the POM from the snapshot**
+
+Use the snapshot output to identify the correct `getByRole` / `getByLabel` selectors for your page. See [Adding a New Page Object](#adding-a-new-page-object) for the POM structure to follow.
+
+### Things to watch for in snapshots
+
+- **Duplicate element names** — the same link text (e.g. "My account") can appear in both the header and footer. Always scope locators to the correct region using `page.getByRole('banner')` or `page.getByRole('contentinfo')`.
+- **Dynamic refs** (e.g. `ref=e13`) — these are snapshot-specific and change between sessions. Never use them as locators — use semantic selectors (`getByRole`, `getByLabel`, `getByText`) instead.
+
+### Snapshot files are gitignored
+
+`playwright-cli` saves snapshots and console logs to `.playwright-cli/` in your project root. These files are gitignored — do not commit them. They go stale as the UI changes and expose internal page structure.
