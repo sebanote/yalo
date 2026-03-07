@@ -27,6 +27,7 @@ playwright-framework/
 │   ├── BasePage.ts              # Base class all POMs extend
 │   └── LoginPage.ts             # Login page POM
 ├── tests/
+│   ├── global.setup.ts          # Runs once before all tests — logs in and saves sessions
 │   └── e2e/
 │       └── login.spec.ts        # Login test suite
 ├── fixtures/
@@ -38,7 +39,6 @@ playwright-framework/
 │   ├── storageState.json
 │   ├── storageState.firefox.json
 │   └── storageState.webkit.json
-├── tests/global.setup.ts              # Runs once before all tests — logs in and saves sessions
 ├── playwright.config.ts         # Playwright configuration — projects, storageState, reporters
 ├── .env                         # Local credentials — gitignored, you create this
 ├── .env.example                 # Template for .env
@@ -102,10 +102,19 @@ Tests fail immediately at startup if either variable is missing.
 
 ## Running Tests
 
-```bash
-# Run all tests across all browsers
-npm test
+### npm scripts
 
+| Script | Command | Description |
+|---|---|---|
+| `npm test` | `npx playwright test` | Run all tests headless across all browsers |
+| `npm run test:headed` | `cross-env HEADED=1 npx playwright test --headed` | Run in headed mode (browser visible) |
+| `npm run test:debug` | `npx playwright test --debug` | Run with Playwright Inspector |
+| `npm run test:ui` | `npx playwright test --ui` | Run in interactive UI mode |
+| `npm run report` | `npx playwright show-report` | Open the last HTML report |
+
+### Useful one-off commands
+
+```bash
 # Run a specific test file
 npx playwright test tests/e2e/login.spec.ts
 
@@ -114,14 +123,8 @@ npx playwright test --project=chromium
 npx playwright test --project=firefox
 npx playwright test --project=webkit
 
-# Run in headed mode (see the browser)
-npx playwright test --headed
-
 # Run with verbose list output
 npx playwright test --reporter=list
-
-# Open the HTML report after a run
-npm run report
 ```
 
 ---
