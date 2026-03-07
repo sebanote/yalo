@@ -38,7 +38,7 @@ playwright-framework/
 │   ├── storageState.json
 │   ├── storageState.firefox.json
 │   └── storageState.webkit.json
-├── global.setup.ts              # Runs once before all tests — logs in and saves sessions
+├── tests/global.setup.ts              # Runs once before all tests — logs in and saves sessions
 ├── playwright.config.ts         # Playwright configuration — projects, storageState, reporters
 ├── .env                         # Local credentials — gitignored, you create this
 ├── .env.example                 # Template for .env
@@ -92,7 +92,7 @@ Tests fail immediately at startup if either variable is missing.
 
 - **Base URL**: `https://demo.nopcommerce.com`
 - **Projects**: Chromium, Firefox, WebKit — each with its own `storageState` file
-- **Global setup**: Runs `global.setup.ts` before all tests to save auth sessions
+- **Global setup**: Runs `tests/global.setup.ts` before all tests to save auth sessions
 - **Reporters**: HTML report + list output
 - **Retries**: 2 retries on CI, 0 locally
 - **Traces**: Captured on first retry
@@ -180,7 +180,7 @@ Click on a failed test → open the trace → replay every action with DOM snaps
 
 ### Authentication via `storageState`
 
-`global.setup.ts` runs **once** before all tests. It logs in using stealth browsers for each of the three browsers and saves the session (cookies + localStorage) to `auth/storageState.json`, `auth/storageState.firefox.json`, and `auth/storageState.webkit.json`.
+`tests/global.setup.ts` runs **once** before all tests. It logs in using stealth browsers for each of the three browsers and saves the session (cookies + localStorage) to `auth/storageState.json`, `auth/storageState.firefox.json`, and `auth/storageState.webkit.json`.
 
 Each project in `playwright.config.ts` loads its matching file, so tests start already authenticated — no login step needed.
 
@@ -188,7 +188,7 @@ Sessions are re-created on every test run. Stale files are cleared automatically
 
 ### Stealth Browsers
 
-All browsers — in both `global.setup.ts` and test runs — launch via `playwright-extra` with `puppeteer-extra-plugin-stealth` applied. This patches automation signals (`navigator.webdriver`, canvas fingerprint, Chrome runtime, plugins etc.) to avoid bot detection.
+All browsers — in both `tests/global.setup.ts` and test runs — launch via `playwright-extra` with `puppeteer-extra-plugin-stealth` applied. This patches automation signals (`navigator.webdriver`, canvas fingerprint, Chrome runtime, plugins etc.) to avoid bot detection.
 
 Per-browser stealth configuration lives in `utils/stealthBrowser.ts`:
 

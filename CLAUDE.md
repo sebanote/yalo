@@ -20,7 +20,7 @@ tests/e2e/       → Test specs
 fixtures/        → Custom Playwright fixtures
 utils/           → Shared helpers (env validation, stealth browser setup)
 auth/            → storageState session files (gitignored)
-global.setup.ts  → Runs once before all tests — saves auth sessions per browser
+tests/global.setup.ts  → Runs once before all tests — saves auth sessions per browser
 playwright.config.ts
 ```
 
@@ -70,7 +70,7 @@ playwright.config.ts
 - Never use `process.env.X ?? 'fallback'` — fail fast instead
 
 ### Authentication
-- `global.setup.ts` saves a storageState file per browser before tests run
+- `tests/global.setup.ts` saves a storageState file per browser before tests run
 - Files saved to: `auth/storageState.json`, `auth/storageState.firefox.json`, `auth/storageState.webkit.json`
 - `auth/` is gitignored — never commit session files
 
@@ -89,6 +89,16 @@ playwright.config.ts
 
 Create `tests/e2e/feature.spec.ts` — authenticated by default, no extra config needed.
 Add `test.use({ stealthStorageState: { cookies: [], origins: [] } })` only if the suite needs a clean session.
+
+---
+
+## Headed Mode
+
+`npm run test:headed` works via `cross-env HEADED=1` set in the npm script. The stealth fixture reads `process.env.HEADED === '1'` and passes `headless: false` to `stealthBrowser.launch()`.
+
+Do NOT use either of these approaches — they do not work:
+- `process.argv.includes('--headed')` — Playwright strips CLI flags before spawning worker processes
+- `testInfo.project.use.headless` — not reliably populated at runtime for custom fixture contexts
 
 ---
 

@@ -18,12 +18,29 @@ export default defineConfig({
     baseURL: 'https://demo.nopcommerce.com',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    // Stealth + storageState are handled entirely inside pages.fixture.ts
   },
 
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox',  use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit',   use: { ...devices['Desktop Safari'] } },
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'auth/storageState.json',
+      },
+    },
+    {
+      name: 'firefox',
+      use: {
+        ...devices['Desktop Firefox'],
+        storageState: 'auth/storageState.firefox.json',
+      },
+    },
+    {
+      name: 'webkit',
+      use: {
+        ...devices['Desktop Safari'],
+        storageState: 'auth/storageState.webkit.json',
+      },
+    },
   ],
 });

@@ -70,8 +70,13 @@ export const test = base.extend<PageFixtures & BrowserFixtures & StealthOptions>
       );
     }
 
+    const isHeaded = process.env.HEADED === '1';
+
+    console.log('[headed debug] process.argv:', process.argv);
+    console.log('[headed debug] isHeaded:', isHeaded);
+
     const browser = await stealthBrowser.launch({
-      headless: true,
+      headless: !isHeaded,
       args: STEALTH_LAUNCH_ARGS,
     });
 

@@ -7,18 +7,16 @@
   "license": "ISC",
   "scripts": {
     "test": "npx playwright test",
-    "test:login": "npx playwright test tests/e2e/login.spec.ts",
-    "test:headed": "npx playwright test --headed",
+    "test:headed": "cross-env HEADED=1 npx playwright test --headed",
     "test:debug": "npx playwright test --debug",
     "test:ui": "npx playwright test --ui",
-    "report": "npx playwright show-report",
-    "codegen": "npx playwright codegen https://demo.nopcommerce.com",
-    "save-auth": "npx playwright codegen --save-storage=auth/storageState.json https://demo.nopcommerce.com/login"
+    "report": "npx playwright show-report"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.0",
     "@types/dotenv": "^6.1.1",
     "@types/node": "^20.0.0",
+    "cross-env": "^10.1.0",
     "dotenv": "^17.3.1",
     "playwright-extra": "^4.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2"
