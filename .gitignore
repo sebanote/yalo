@@ -1,8 +1,18 @@
-
-# Playwright
 node_modules/
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-/playwright/.auth/
+dist/
+
+# Auth state — NEVER commit tokens or session files
+auth/storageState*.json
+.env
+.env.local
+
+# Playwright output
+test-results/
+playwright-report/
+blob-report/
+
+# OS
+.DS_Store
+
+# playwright-cli snapshots and session files
+.playwright-cli/

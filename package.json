@@ -3,13 +3,24 @@
   "version": "1.0.0",
   "description": "E2E Testing Framework with Playwright and Typescript",
   "main": "index.js",
-  "scripts": {
-    "test": "playwright test --ui"
-  },
   "author": "",
   "license": "ISC",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:login": "npx playwright test tests/e2e/login.spec.ts",
+    "test:headed": "npx playwright test --headed",
+    "test:debug": "npx playwright test --debug",
+    "test:ui": "npx playwright test --ui",
+    "report": "npx playwright show-report",
+    "codegen": "npx playwright codegen https://demo.nopcommerce.com",
+    "save-auth": "npx playwright codegen --save-storage=auth/storageState.json https://demo.nopcommerce.com/login"
+  },
   "devDependencies": {
-    "@playwright/test": "^1.58.2",
-    "@types/node": "^25.3.3"
+    "@playwright/test": "^1.44.0",
+    "@types/dotenv": "^6.1.1",
+    "@types/node": "^20.0.0",
+    "dotenv": "^17.3.1",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }
