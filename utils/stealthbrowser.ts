@@ -34,18 +34,10 @@ stealthFirefox.enabledEvasions.delete('media.codecs');
 firefox.use(stealthFirefox);
 
 // ── WebKit: stealth with only JS-level evasions ──────────────────────────────
-// The following evasions are removed because they either inject Chromium-only
-// launch flags or patch Chromium-specific APIs that don't exist in WebKit:
-//   - defaultArgs        → injects --disable-blink-features=AutomationControlled (crashes WebKit)
-//   - chrome.app         → Chromium-only API
-//   - chrome.csi         → Chromium-only API
-//   - chrome.loadTimes   → Chromium-only API
-//   - chrome.runtime     → Chromium-only API
-//   - user-agent-override → calls browser().userAgent() which returns null on WebKit
-//   - webgl.vendor       → Chromium-specific WebGL fingerprint
-//   - media.codecs       → Chromium-specific codec fingerprint
-// Remaining evasions patch JS APIs (navigator.webdriver, navigator.plugins etc.)
-// and are safe to apply on WebKit.
+// playwright-extra injects --disable-blink-features=AutomationControlled at the
+// launcher level independently of the stealth plugin evasions system. WebKit
+// actively rejects this flag and crashes. We intercept it by hooking into the
+// webkit launcher and stripping the offending flag before launch.
 const stealthWebkit = StealthPlugin();
 stealthWebkit.enabledEvasions.delete('defaultArgs');
 stealthWebkit.enabledEvasions.delete('chrome.app');
@@ -56,6 +48,17 @@ stealthWebkit.enabledEvasions.delete('user-agent-override');
 stealthWebkit.enabledEvasions.delete('webgl.vendor');
 stealthWebkit.enabledEvasions.delete('media.codecs');
 webkit.use(stealthWebkit);
+
+// Strip Chromium-only flags that playwright-extra injects at the launcher level.
+// This hook runs after all plugins have applied their args, giving us a clean
+// opportunity to remove flags that WebKit rejects before the browser is launched.
+const originalWebkitLaunch = webkit.launch.bind(webkit);
+(webkit as any).launch = (options: any = {}) => {
+  const filteredArgs = (options.args ?? []).filter(
+    (arg: string) => !arg.startsWith('--disable-blink-features')
+  );
+  return originalWebkitLaunch({ ...options, args: filteredArgs });
+};
 
 // ── Launch args ───────────────────────────────────────────────────────────────
 // Chromium-only flags — do NOT pass to Firefox or WebKit
