@@ -33,7 +33,8 @@ playwright-framework/
 ├── fixtures/
 │   └── pages.fixture.ts         # Custom test fixtures (stealth browser, credentials, page objects)
 ├── utils/
-│   ├── env.ts                   # Env var validation — fails fast if vars are missing
+│   ├── credentials.ts           # All test accounts in one typed object
+│   ├── env.ts                   # Env var validation — requireEnv() and optionalEnv()
 │   └── stealthBrowser.ts        # playwright-extra stealth browser setup (shared)
 ├── auth/                        # Saved session files — gitignored, created by global setup
 │   ├── storageState.json
@@ -97,6 +98,52 @@ Tests fail immediately at startup if either variable is missing.
 - **Retries**: 2 retries on CI, 0 locally
 - **Traces**: Captured on first retry
 - **Screenshots**: Captured on failure
+
+---
+
+## Test Accounts
+
+All test accounts are defined in `utils/credentials.ts` as a single typed object. This is the only place you need to touch when adding a new account.
+
+```typescript
+export const credentials = {
+  default: {
+    email:    requireEnv('TEST_EMAIL'),
+    password: requireEnv('TEST_PASSWORD'),
+  },
+  // admin: {
+  //   email:    requireEnv('TEST_EMAIL_ADMIN'),
+  //   password: requireEnv('TEST_EMAIL_ADMIN'),
+  // },
+};
+```
+
+### Adding a new account
+
+**1. Add to `.env` and `.env.example`:**
+```
+TEST_EMAIL_ADMIN=admin@example.com
+TEST_PASSWORD_ADMIN=AdminPass123
+```
+
+**2. Add to `utils/credentials.ts`:**
+```typescript
+admin: {
+  email:    requireEnv('TEST_EMAIL_ADMIN'),
+  password: requireEnv('TEST_PASSWORD_ADMIN'),
+},
+```
+
+**3. Use in tests:**
+```typescript
+import { credentials } from '../../utils/credentials';
+
+await loginPage.login(credentials.admin.email, credentials.admin.password);
+```
+
+- Use `requireEnv()` for accounts the core suite always needs — throws at startup if missing
+- Use `optionalEnv()` for accounts only needed by specific tests — throws only when that test runs
+- The `credentials` fixture in `pages.fixture.ts` always provides `credentials.default` — import `credentials` directly for other accounts
 
 ---
 

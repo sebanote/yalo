@@ -92,6 +92,22 @@ Add `test.use({ stealthStorageState: { cookies: [], origins: [] } })` only if th
 
 ---
 
+## Test Accounts (`utils/credentials.ts`)
+
+All accounts live in `utils/credentials.ts` as a single typed object. Never hardcode credentials in tests.
+
+- `requireEnv()` — use for accounts always needed. Throws at startup if missing.
+- `optionalEnv()` — use for accounts only needed by specific tests. Throws only when that test runs.
+- The `credentials` fixture always provides `credentials.default`.
+- Import `credentials` directly in tests that need non-default accounts.
+
+### Adding a new account
+1. Add vars to `.env`, `.env.example`, and GitHub Actions secrets
+2. Add entry to `utils/credentials.ts`
+3. Import and use in the test — no fixture changes needed
+
+---
+
 ## Headed Mode
 
 `npm run test:headed` works via `cross-env HEADED=1` set in the npm script. The stealth fixture reads `process.env.HEADED === '1'` and passes `headless: false` to `stealthBrowser.launch()`.

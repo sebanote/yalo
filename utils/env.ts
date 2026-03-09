@@ -1,16 +1,13 @@
-/**
- * env.ts
- * ──────
- * Single source of truth for environment variables.
- * Throws at startup if required variables are missing — fails fast
- * instead of running tests with wrong or missing credentials.
- *
- * Usage:
- *   import { env } from '../utils/env';
- *   env.TEST_EMAIL
- */
+import dotenv from 'dotenv';
+dotenv.config();
 
-function requireEnv(name: string): string {
+/**
+ * requireEnv
+ * ──────────
+ * Reads an environment variable and throws immediately if it is missing or empty.
+ * Use for variables that are required for the test suite to run at all.
+ */
+export function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
     throw new Error(
@@ -20,6 +17,17 @@ function requireEnv(name: string): string {
     );
   }
   return value;
+}
+
+/**
+ * optionalEnv
+ * ───────────
+ * Reads an environment variable and returns undefined if missing.
+ * Use for variables only needed by specific tests — throw in the test or fixture
+ * if the value is required for that particular scenario.
+ */
+export function optionalEnv(name: string): string | undefined {
+  return process.env[name] || undefined;
 }
 
 export const env = {
