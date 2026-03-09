@@ -2,9 +2,6 @@ import { chromium, firefox, webkit } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 
 // ── Chromium: full stealth with userAgent shim ───────────────────────────────
-// user-agent-override calls page.browser().userAgent() — a Puppeteer API.
-// In Playwright, browser() returns null on Firefox/WebKit but works on Chromium.
-// We shim the missing method for Chromium so the evasion runs correctly.
 const stealthChromium = StealthPlugin();
 const originalOnPageCreated = stealthChromium.onPageCreated?.bind(stealthChromium);
 stealthChromium.onPageCreated = async (page: any) => {
@@ -21,19 +18,46 @@ stealthChromium.onPageCreated = async (page: any) => {
 };
 chromium.use(stealthChromium);
 
-// ── Firefox / WebKit: stealth without user-agent-override ────────────────────
-// browser() returns null on these engines so the shim can't work.
-// user-agent-override is removed — Firefox and WebKit have distinct enough
-// fingerprints that they pass Cloudflare without it anyway.
+// ── Firefox: stealth without evasions that require Chromium APIs ──────────────
+// - user-agent-override: calls browser().userAgent() which returns null on Firefox
+// - disable-blink-features: injects --disable-blink-features=AutomationControlled
+//   which is a Chromium-only flag — Firefox ignores it but it's cleaner to remove it
 const stealthFirefox = StealthPlugin();
+stealthFirefox.enabledEvasions.delete('defaultArgs');
+stealthFirefox.enabledEvasions.delete('chrome.app');
+stealthFirefox.enabledEvasions.delete('chrome.csi');
+stealthFirefox.enabledEvasions.delete('chrome.loadTimes');
+stealthFirefox.enabledEvasions.delete('chrome.runtime');
 stealthFirefox.enabledEvasions.delete('user-agent-override');
+stealthFirefox.enabledEvasions.delete('webgl.vendor');
+stealthFirefox.enabledEvasions.delete('media.codecs');
 firefox.use(stealthFirefox);
 
+// ── WebKit: stealth with only JS-level evasions ──────────────────────────────
+// The following evasions are removed because they either inject Chromium-only
+// launch flags or patch Chromium-specific APIs that don't exist in WebKit:
+//   - defaultArgs        → injects --disable-blink-features=AutomationControlled (crashes WebKit)
+//   - chrome.app         → Chromium-only API
+//   - chrome.csi         → Chromium-only API
+//   - chrome.loadTimes   → Chromium-only API
+//   - chrome.runtime     → Chromium-only API
+//   - user-agent-override → calls browser().userAgent() which returns null on WebKit
+//   - webgl.vendor       → Chromium-specific WebGL fingerprint
+//   - media.codecs       → Chromium-specific codec fingerprint
+// Remaining evasions patch JS APIs (navigator.webdriver, navigator.plugins etc.)
+// and are safe to apply on WebKit.
 const stealthWebkit = StealthPlugin();
+stealthWebkit.enabledEvasions.delete('defaultArgs');
+stealthWebkit.enabledEvasions.delete('chrome.app');
+stealthWebkit.enabledEvasions.delete('chrome.csi');
+stealthWebkit.enabledEvasions.delete('chrome.loadTimes');
+stealthWebkit.enabledEvasions.delete('chrome.runtime');
 stealthWebkit.enabledEvasions.delete('user-agent-override');
-stealthWebkit.enabledEvasions.delete('disable-blink-features');
+stealthWebkit.enabledEvasions.delete('webgl.vendor');
+stealthWebkit.enabledEvasions.delete('media.codecs');
 webkit.use(stealthWebkit);
 
+// ── Launch args ───────────────────────────────────────────────────────────────
 // Chromium-only flags — do NOT pass to Firefox or WebKit
 export const CHROMIUM_LAUNCH_ARGS = [
   '--disable-blink-features=AutomationControlled',
@@ -43,7 +67,7 @@ export const CHROMIUM_LAUNCH_ARGS = [
 
 // Firefox and WebKit reject Chromium-specific flags
 export const FIREFOX_LAUNCH_ARGS: string[] = [];
-export const WEBKIT_LAUNCH_ARGS: string[] = [];
+export const WEBKIT_LAUNCH_ARGS: string[]  = [];
 
 export const LAUNCH_ARGS_FOR_BROWSER: Record<string, string[]> = {
   chromium: CHROMIUM_LAUNCH_ARGS,

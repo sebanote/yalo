@@ -8,7 +8,7 @@ import { test, expect } from '../../fixtures/pages.fixture';
 
 // ── Unauthenticated suite ─────────────────────────────────────
 test.describe('Login', () => {
-  test.use({ stealthStorageState: { cookies: [], origins: [] } });
+  //test.use({ stealthStorageState: { cookies: [], origins: [] } });
 
   test('1. User can login successfully with valid credentials', async ({ loginPage, credentials }) => {
     await test.step('Navigate to login page', async () => {
