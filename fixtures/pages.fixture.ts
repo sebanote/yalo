@@ -1,7 +1,7 @@
 import { test as base, BrowserContext, Page, expect } from '@playwright/test';
-import { chromium, firefox, webkit, STEALTH_LAUNCH_ARGS } from '../utils/stealthbrowser';
+import { chromium, firefox, webkit, LAUNCH_ARGS_FOR_BROWSER } from '../utils/stealthbrowser';
 import { LoginPage } from '../pages/LoginPage';
-import { credentials } from '../utils/credentials';
+import { credentials, Credentials } from '../utils/credentials';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -19,7 +19,6 @@ const STORAGE_STATE_FOR_PROJECT: Record<string, string> = {
   webkit:   'auth/storageState.webkit.json',
 };
 
-import { Credentials } from '../utils/credentials';
 type StealthOptions = {
   /**
    * Controls the storageState for the stealth browser context.
@@ -65,14 +64,14 @@ export const test = base.extend<PageFixtures & BrowserFixtures & StealthOptions>
 
     // Respect the --headed CLI flag.
     // stealthBrowser.launch() creates its own browser outside Playwright's
-    // managed context, so the --headed flag is ignored unless we detect it
-    // manually. We check process.argv since testInfo.project.use.headless
-    // is not reliably populated at runtime for custom fixture contexts.
-    const isHeaded = process.argv.includes('--headed') || process.env.HEADED === '1';
+    // managed context, so --headed is ignored unless we detect it manually.
+    // process.argv does not work — Playwright strips CLI flags before spawning
+    // workers. Use cross-env HEADED=1 in the npm script instead.
+    const isHeaded = process.env.HEADED === '1';
 
     const browser = await stealthBrowser.launch({
       headless: !isHeaded,
-      args: STEALTH_LAUNCH_ARGS,
+      args: LAUNCH_ARGS_FOR_BROWSER[projectName] ?? [],
     });
 
     const isEmptyState = (s: any) =>
@@ -96,7 +95,12 @@ export const test = base.extend<PageFixtures & BrowserFixtures & StealthOptions>
 
     const contextOptions: Record<string, any> = {};
     if (resolvedPath && fs.existsSync(path.resolve(resolvedPath))) {
+      // Authenticated — load saved session
       contextOptions.storageState = resolvedPath;
+    } else {
+      // Unauthenticated — explicitly clear cookies and origins so the stealth
+      // browser does not reuse any cached session from a previous run
+      contextOptions.storageState = { cookies: [], origins: [] };
     }
 
     const context = await browser.newContext(contextOptions);
