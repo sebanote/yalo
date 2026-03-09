@@ -1,5 +1,5 @@
 import { test as base, BrowserContext, Page, expect } from '@playwright/test';
-import { chromium, firefox, webkit, STEALTH_LAUNCH_ARGS } from '../utils/stealthbrowser';
+import { chromium, firefox, webkit, LAUNCH_ARGS_FOR_BROWSER } from '../utils/stealthbrowser';
 import { LoginPage } from '../pages/LoginPage';
 import { env } from '../utils/env';
 import * as path from 'path';
@@ -71,13 +71,11 @@ export const test = base.extend<PageFixtures & BrowserFixtures & StealthOptions>
     }
 
     const isHeaded = process.env.HEADED === '1';
-
-    console.log('[headed debug] process.argv:', process.argv);
-    console.log('[headed debug] isHeaded:', isHeaded);
+    
 
     const browser = await stealthBrowser.launch({
       headless: !isHeaded,
-      args: STEALTH_LAUNCH_ARGS,
+      args: LAUNCH_ARGS_FOR_BROWSER[projectName] ?? [],
     });
 
     const isEmptyState = (s: any) =>
@@ -101,7 +99,12 @@ export const test = base.extend<PageFixtures & BrowserFixtures & StealthOptions>
 
     const contextOptions: Record<string, any> = {};
     if (resolvedPath && fs.existsSync(path.resolve(resolvedPath))) {
+      // Authenticated — load saved session
       contextOptions.storageState = resolvedPath;
+    } else {
+      // Unauthenticated — explicitly clear cookies and origins so the stealth
+      // browser does not reuse any cached session from a previous run
+      contextOptions.storageState = { cookies: [], origins: [] };
     }
 
     const context = await browser.newContext(contextOptions);

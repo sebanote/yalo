@@ -1,5 +1,5 @@
 import { FullConfig } from '@playwright/test';
-import { chromium, firefox, webkit, STEALTH_LAUNCH_ARGS } from '../utils/stealthbrowser';
+import { chromium, firefox, webkit, LAUNCH_ARGS_FOR_BROWSER } from '../utils/stealthbrowser';
 import { LoginPage } from '../pages/LoginPage';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -31,7 +31,7 @@ async function saveAuthForBrowser(
 
   const instance = await browser.launch({
     headless: true,
-    args: STEALTH_LAUNCH_ARGS,
+    args: LAUNCH_ARGS_FOR_BROWSER[browserName] ?? [],
   });
 
   try {
