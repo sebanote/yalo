@@ -31,6 +31,7 @@ firefox.use(stealthFirefox);
 
 const stealthWebkit = StealthPlugin();
 stealthWebkit.enabledEvasions.delete('user-agent-override');
+stealthWebkit.enabledEvasions.delete('disable-blink-features');
 webkit.use(stealthWebkit);
 
 // Chromium-only flags — do NOT pass to Firefox or WebKit
