@@ -1,6 +1,8 @@
 import { test as base, BrowserContext, Page, expect } from '@playwright/test';
 import { chromium, firefox, webkit, LAUNCH_ARGS_FOR_BROWSER } from '../utils/stealthbrowser';
 import { LoginPage } from '../pages/LoginPage';
+import { ProductPage } from '../pages/ProductPage';
+import { CartPage } from '../pages/CartPage';
 import { credentials, Credentials } from '../utils/credentials';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -34,6 +36,8 @@ type StealthOptions = {
 
 type PageFixtures = {
   loginPage: LoginPage;
+  productPage: ProductPage;
+  cartPage: CartPage;
   credentials: Credentials;
 };
 
@@ -117,6 +121,14 @@ export const test = base.extend<PageFixtures & BrowserFixtures & StealthOptions>
 
   loginPage: async ({ stealthPage }, use) => {
     await use(new LoginPage(stealthPage));
+  },
+
+  productPage: async ({ stealthPage }, use) => {
+    await use(new ProductPage(stealthPage));
+  },
+
+  cartPage: async ({ stealthPage }, use) => {
+    await use(new CartPage(stealthPage));
   },
 
 });

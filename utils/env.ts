@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-dotenv.config();
+dotenv.config({quiet: true}); // Suppress warnings if .env is missing, since some variables are optional
 
 /**
  * requireEnv

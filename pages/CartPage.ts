@@ -6,19 +6,34 @@ import { BasePage } from './BasePage';
  * ────────
  * Page Object Model for /cart
  *
- * Snapshot refs:
+ * Snapshot refs (full cart):
  *   - Cart table       → ref=e62  (table)
  *   - Cart rows        → ref=e80  (rowgroup — cart items)
- *   - Qty input        → ref=e92, e108 (textbox "Qty.")
- *   - Remove button    → ref=e96, e112 (button "Remove")
- *   - Continue shopping→ ref=e115 (button)
- *   - Discount input   → ref=e130 (textbox "Enter discount coupon code")
- *   - Apply coupon     → ref=e131 (button)
- *   - Gift card input  → ref=e136 (textbox "Enter gift card code")
- *   - Add gift card    → ref=e137 (button)
- *   - Terms checkbox   → ref=e160
- *   - Checkout button  → ref=e163
- *   - Total            → ref=e155 (strong inside Total row)
+ *   - Qty input        → ref=e95, e114, e133 (textbox "Qty.")
+ *   - Remove button    → ref=e99, e118, e137 (button "Remove")
+ *   - Continue shopping→ ref=e140 (button)
+ *   - Discount input   → ref=e155 (textbox "Enter discount coupon code")
+ *   - Apply coupon     → ref=e156 (button)
+ *   - Gift card input  → ref=e161 (textbox "Enter gift card code")
+ *   - Add gift card    → ref=e162 (button)
+ *   - Terms checkbox   → ref=e185
+ *   - Checkout button  → ref=e188
+ *   - Total            → ref=e180 (strong inside Total row)
+ *
+ * Snapshot refs (empty cart):
+ *   - Empty message    → ref=e60 (generic: "Your Shopping Cart is empty!")
+ *
+ * nopCommerce cart mutation mechanics (confirmed via DOM inspection):
+ *
+ *   addToCart    → true AJAX, no page reload
+ *                  wait: #bar-notification visible→hidden (handled in ProductPage)
+ *
+ *   removeItem   → checks a hidden checkbox + triggers hidden #updatecart submit
+ *                  this is a full form POST — the page reloads to /cart
+ *                  wait: click → row detached → cartTable or emptyMessage visible
+ *
+ *   updateQty    → same hidden #updatecart form POST mechanism as removeItem
+ *                  wait: press → input detached → cartTable visible
  */
 export class CartPage extends BasePage {
 
@@ -50,7 +65,9 @@ export class CartPage extends BasePage {
     const main                = page.getByRole('main');
 
     this.cartTable            = main.getByRole('table').first();
-    this.cartRows             = main.getByRole('row').filter({ has: page.getByRole('button', { name: 'Remove' }) });
+    this.cartRows             = main.getByRole('row').filter({
+      has: page.getByRole('button', { name: 'Remove' }),
+    });
 
     this.subTotal             = main.getByRole('row', { name: /Sub-Total/ }).getByRole('cell').last();
     this.orderTotal           = main.getByRole('row', { name: /^Total:/ }).locator('strong');
@@ -61,27 +78,79 @@ export class CartPage extends BasePage {
     this.addGiftCardButton    = main.getByRole('button', { name: 'Add gift card' });
 
     this.continueShoppingButton = main.getByRole('button', { name: 'Continue shopping' });
-    this.termsCheckbox        = main.getByRole('checkbox', { name: /I agree with the terms of service/ });
+    this.termsCheckbox        = main.getByRole('checkbox', {
+      name: /I agree with the terms of service/,
+    });
     this.checkoutButton       = main.getByRole('button', { name: 'Checkout' });
 
-    this.emptyCartMessage     = main.locator('.no-data');
+    this.emptyCartMessage     = main.getByText('Your Shopping Cart is empty!');
   }
 
   // ── Actions ───────────────────────────────────────────────────
 
   async navigate(): Promise<void> {
     await this.goto('/cart');
-    await this.waitForPageLoad();
+    // Wait for cart table or empty message rather than networkidle —
+    // Firefox holds background connections open on the demo site causing
+    // networkidle to hang indefinitely.
+    await Promise.race([
+      this.cartTable.waitFor({ state: 'visible', timeout: 15_000 }),
+      this.emptyCartMessage.waitFor({ state: 'visible', timeout: 15_000 }),
+    ]);
   }
 
+  /**
+   * Update the quantity of a cart row.
+   *
+   * Pressing Enter on the qty input triggers the hidden #updatecart button,
+   * which submits a full form POST back to /cart — the page fully reloads.
+   * Press Enter → wait for input to detach → wait for cartTable to re-appear.
+   */
   async updateQuantity(rowIndex: number, quantity: number): Promise<void> {
-    const row = this.cartRows.nth(rowIndex);
-    await row.getByRole('textbox', { name: 'Qty.' }).fill(String(quantity));
+    const qtyInput = this.cartRows.nth(rowIndex).getByRole('textbox', { name: 'Qty.' });
+    await qtyInput.fill(String(quantity));
+
+    // The qty input onchange is guarded by __cfRLUnblockHandlers.
+    // Set the flag then trigger the change event so the original handler fires,
+    // submitting the form with the anti-forgery token intact.
+    await this.page.evaluate(() => {
+      (window as any).__cfRLUnblockHandlers = true;
+    });
+    await qtyInput.dispatchEvent('change');
+
+    await qtyInput.waitFor({ state: 'detached', timeout: 20_000 });
+    await this.cartTable.waitFor({ state: 'visible', timeout: 15_000 });
   }
 
+  /**
+   * Remove a cart row.
+   *
+   * The Remove button checks a hidden checkbox then triggers the hidden
+   * #updatecart submit — a full form POST that reloads /cart.
+   * Click → wait for row to detach → wait for cartTable or emptyMessage.
+   */
   async removeItem(rowIndex: number): Promise<void> {
-    await this.cartRows.nth(rowIndex).getByRole('button', { name: 'Remove' }).click();
-    await this.waitForPageLoad();
+    const row = this.cartRows.nth(rowIndex);
+    const removeBtn = row.getByRole('button', { name: 'Remove' });
+
+    // The Remove button onclick is guarded by `if (!window.__cfRLUnblockHandlers) return false`.
+    // On stealth browsers this flag is not set so the handler exits early.
+    // We set the flag, then click — the original onclick runs and submits
+    // the form with the anti-forgery token intact (bypassing via evaluate
+    // would skip the token and the server silently no-ops the POST).
+    await this.page.evaluate(() => {
+      (window as any).__cfRLUnblockHandlers = true;
+    });
+    await removeBtn.click();
+
+    await Promise.race([
+      row.waitFor({ state: 'detached', timeout: 20_000 }),
+      this.emptyCartMessage.waitFor({ state: 'visible', timeout: 20_000 }),
+    ]);
+    await Promise.race([
+      this.cartTable.waitFor({ state: 'visible', timeout: 15_000 }),
+      this.emptyCartMessage.waitFor({ state: 'visible', timeout: 15_000 }),
+    ]);
   }
 
   async applyDiscountCode(code: string): Promise<void> {
@@ -105,6 +174,8 @@ export class CartPage extends BasePage {
   // ── State queries ─────────────────────────────────────────────
 
   async getItemCount(): Promise<number> {
+    const isEmpty = await this.emptyCartMessage.isVisible();
+    if (isEmpty) return 0;
     return this.cartRows.count();
   }
 
@@ -118,6 +189,9 @@ export class CartPage extends BasePage {
 
   async getCartItemNames(): Promise<string[]> {
     const rows = await this.cartRows.all();
-    return Promise.all(rows.map(row => row.getByRole('link').first().innerText()));
+    // Product name is the link inside the 3rd cell (Product(s) column — ref=e86, e102)
+    return Promise.all(rows.map(row =>
+      row.getByRole('cell').nth(2).getByRole('link').first().innerText()
+    ));
   }
 }

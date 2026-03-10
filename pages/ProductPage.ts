@@ -17,6 +17,17 @@ import { BasePage } from './BasePage';
  *   - Review text      → ref=e193 (textbox "Review text:")
  *   - Submit review    → ref=e207 (button "Submit review")
  *   - Breadcrumb       → ref=e55  (list)
+ *
+ * #bar-notification anatomy:
+ *   Outer container (#bar-notification) is ALWAYS in the DOM — never
+ *   hidden/removed. Waiting on it with state:'hidden' never resolves.
+ *
+ *   When an add-to-cart succeeds the server injects an inner child:
+ *     <div class="bar-notification success" style="display:block;">...</div>
+ *
+ *   When dismissed the inner child is removed, leaving the outer container
+ *   empty. The correct wait target is the inner .bar-notification.success
+ *   child, not the outer wrapper.
  */
 export class ProductPage extends BasePage {
 
@@ -42,6 +53,12 @@ export class ProductPage extends BasePage {
   readonly breadcrumb: Locator;
 
   // ── Notifications ─────────────────────────────────────────────
+  /**
+   * The inner success banner injected after a successful add-to-cart.
+   * This element is created and removed dynamically — it does not exist
+   * in the DOM until the server responds, and is removed on dismiss.
+   * Use this (not #bar-notification) as the AJAX commit signal.
+   */
   readonly addToCartNotification: Locator;
 
   constructor(page: Page) {
@@ -56,9 +73,11 @@ export class ProductPage extends BasePage {
     this.skuLabel             = main.locator('.sku .value');
 
     this.quantityInput        = main.getByRole('textbox', { name: 'Enter a quantity' });
-    this.addToCartButton      = main.locator('article').first().getByRole('button', { name: 'Add to cart' });
-    this.addToWishlistButton  = main.locator('article').first().getByRole('button', { name: 'Add to wishlist' });
-    this.addToCompareButton   = main.locator('article').first().getByRole('button', { name: 'Add to compare list' });
+    // Scoped to the product overview block to avoid matching related product buttons
+    const overview            = main.locator('.product-essential, .overview').first();
+    this.addToCartButton      = overview.getByRole('button', { name: 'Add to cart' });
+    this.addToWishlistButton  = overview.getByRole('button', { name: 'Add to wishlist' });
+    this.addToCompareButton   = overview.getByRole('button', { name: 'Add to compare list' });
     this.emailFriendButton    = main.getByRole('button', { name: 'Email a friend' });
 
     this.reviewTitleInput     = main.getByLabel('Review title:');
@@ -66,7 +85,11 @@ export class ProductPage extends BasePage {
     this.submitReviewButton   = main.getByRole('button', { name: 'Submit review' });
 
     this.breadcrumb           = main.locator('.breadcrumb');
-    this.addToCartNotification = page.locator('#bar-notification');
+
+    // Inner child of #bar-notification — dynamically injected on success,
+    // removed on dismiss. The outer #bar-notification wrapper is always
+    // present so cannot be used as a reliable visible/hidden signal.
+    this.addToCartNotification = this.page.locator('#bar-notification .bar-notification.success');
   }
 
   // ── Actions ───────────────────────────────────────────────────
@@ -80,10 +103,25 @@ export class ProductPage extends BasePage {
     await this.quantityInput.fill(String(quantity));
   }
 
+  /**
+   * Clicks "Add to cart" and waits for the server to confirm the add.
+   *
+   * nopCommerce POSTs to the cart via AJAX and then injects a child
+   * div.bar-notification.success inside #bar-notification.
+   * That child is removed from the DOM when the bar is dismissed.
+   *
+   * Wait for the inner child to appear — that confirms the server
+   * committed the add. The bar never auto-fades; navigate away immediately.
+   */
   async addToCart(quantity?: number): Promise<void> {
     if (quantity !== undefined) await this.setQuantity(quantity);
     await this.addToCartButton.click();
-    await this.waitForPageLoad();
+
+    // Inner child appears → server confirmed the cart write.
+    // We do not wait for detach — the bar only dismisses on manual close
+    // or when a subsequent add replaces it; it never auto-fades.
+    // Navigating away immediately after attach is sufficient.
+    await this.addToCartNotification.waitFor({ state: 'attached', timeout: 10_000 });
   }
 
   async addToWishlist(): Promise<void> {

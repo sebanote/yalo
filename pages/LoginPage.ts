@@ -24,8 +24,8 @@ export class LoginPage extends BasePage {
   readonly errorMessage: Locator;
 
   // Header locators — scoped to <banner> to avoid matching footer duplicates.
-  // Snapshot shows "My account" and "Log out" appear in both header (ref=e13/e15)
-  // and footer menu (ref=e247). Scoping to banner ensures we target the header only.
+  // Snapshot shows "My account" and "Log out" appear in both header (ref=e17/e19)
+  // and footer menu (ref=e127). Scoping to banner ensures we target the header only.
   readonly logoutLink: Locator;
   readonly myAccountLink: Locator;
 
@@ -39,7 +39,7 @@ export class LoginPage extends BasePage {
     this.forgotPasswordLink = page.getByRole('link', { name: 'Forgot password?' });
     this.errorMessage       = page.locator('.message-error');
 
-    // Scoped to header banner (ref=e3) — avoids ambiguity with footer links
+    // Scoped to header banner (ref=e7) — avoids ambiguity with footer links
     const header            = page.getByRole('banner');
     this.logoutLink         = header.getByRole('link', { name: 'Log out' });
     this.myAccountLink      = header.getByRole('link', { name: 'My account' });
@@ -49,7 +49,10 @@ export class LoginPage extends BasePage {
 
   async navigate(): Promise<void> {
     await this.goto('/login');
-    await this.waitForPageLoad();
+    // Wait for the login button to be visible rather than networkidle —
+    // Firefox holds background connections open on the demo site causing
+    // networkidle to hang indefinitely, closing the context mid-test.
+    await this.loginButton.waitFor({ state: 'visible', timeout: 15_000 });
   }
 
   async login(email: string, password: string): Promise<void> {

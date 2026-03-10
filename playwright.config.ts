@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
 
 // Load .env before anything else — required for env.ts validation
-dotenv.config();
+dotenv.config({quiet: true});
 
 export default defineConfig({
   testDir: './tests',
@@ -13,6 +13,10 @@ export default defineConfig({
   reporter: [['html'], ['list']],
 
   globalSetup: './tests/global.setup.ts',
+
+  // 60s covers the worst case: Firefox beforeEach clearing 3-4 items via
+  // full page reloads (≈8s each) before the test body even starts.
+  timeout: 60_000,
 
   use: {
     baseURL: 'https://demo.nopcommerce.com',

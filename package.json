@@ -10,6 +10,7 @@
     "test:headed": "cross-env HEADED=1 npx playwright test --headed",
     "test:debug": "npx playwright test --debug",
     "test:ui": "npx playwright test --ui",
+    "test:chrome": "npx playwright test --project=chromium",
     "report": "npx playwright show-report"
   },
   "devDependencies": {

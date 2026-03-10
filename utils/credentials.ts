@@ -21,10 +21,6 @@ export const credentials = {
   //   email:    requireEnv('TEST_EMAIL_ADMIN'),
   //   password: requireEnv('TEST_PASSWORD_ADMIN'),
   // },
-  // locked: {
-  //   email:    optionalEnv('TEST_EMAIL_LOCKED'),
-  //   password: optionalEnv('TEST_PASSWORD_LOCKED'),
-  // },
 };
 
 export type Credentials = {
